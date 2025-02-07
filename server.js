@@ -1,7 +1,8 @@
 const express = require("express");
+const cors = require("cors");
 const { errorHandler } = require("./middleware/error-handler");
 const customErrorHandler = require("./middleware/custom-error");
-const { signUpRoute, loginRoute } = require("./routes/auth");
+const { signUpRoute, loginRoute, me } = require("./routes/auth");
 const { getUserRoute, updateUserRoute } = require("./routes/users");
 const {
   createTransactionRoute,
@@ -11,6 +12,7 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -19,6 +21,7 @@ app.get("/", (req, res) => {
 
 app.use("/v1/api", signUpRoute);
 app.use("/v1/api", loginRoute);
+app.use("/v1/api", me);
 app.use("/v1/api", getUserRoute);
 app.use("/v1/api", updateUserRoute);
 app.use("/v1/api", createTransactionRoute);

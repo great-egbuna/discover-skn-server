@@ -7,6 +7,27 @@ const db = require("../db/db");
 const argon2 = require("argon2");
 
 class AuthController {
+  async me(req, res, next) {
+    try {
+      const authHeader = req.headers["authorization"];
+      const token = authHeader && authHeader.split(" ")[1];
+
+      if (!token) {
+        customError(400, "Unauthorized", next);
+      }
+
+      jwt.verify(token, "shhhhh", (err, user) => {
+        if (err) {
+          customError(400, "no token", next);
+        }
+
+        return res.json(req.user);
+      });
+    } catch (error) {
+      customError(400, "Unauthorized", next);
+    }
+  }
+
   async singUp(req, res, next) {
     try {
       const payload = req.body;
@@ -14,6 +35,11 @@ class AuthController {
       const { error } = signUpSchema.validate(payload);
 
       if (error) customError(400, error.details, next);
+
+      const existingUser = await db("users")
+        .where({ email: payload.email })
+        .first();
+      if (existingUser) return customError(400, "Email already exists", next);
 
       payload.id = v4();
 
@@ -25,16 +51,21 @@ class AuthController {
         "shhhhh",
         { expiresIn: "1d" }
       );
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 1);
 
       const hashedPassword = await argon2.hash(payload.password);
 
       payload.password = hashedPassword;
-      console.log("password", payload.password);
 
       await db("users").insert(payload);
+
+      const user = await db("users").where({ id: payload.id }).first();
       res.status(200).json({
         msg: "success",
         token,
+        user,
+        expiresAt: expiresAt.toISOString(),
       });
     } catch (error) {
       customError(400, "Sign up failed", next);
@@ -63,10 +94,14 @@ class AuthController {
         "shhhhh",
         { expiresIn: "1d" }
       );
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 1);
 
-      res.status(200).json({
+      return res.status(200).json({
         msg: "Login successful",
         token,
+        user,
+        expiresAt: expiresAt.toISOString(),
       });
     } catch (error) {
       customError(500, "Login failed", next);
