@@ -6,4 +6,4 @@ const knexFile = require("../knexfile.js");
 
 const env = process.env.NODE_ENV || "development";
 
-module.exports = knex(knexFile[env]);
+module.exports = knex(knexFile["production"]);

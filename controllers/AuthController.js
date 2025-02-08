@@ -11,17 +11,24 @@ class AuthController {
     try {
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
+      console.log("token", token);
 
       if (!token) {
         customError(400, "Unauthorized", next);
       }
 
-      jwt.verify(token, "shhhhh", (err, user) => {
+      jwt.verify(token, "shhhhh", async (err, user) => {
         if (err) {
           customError(400, "no token", next);
         }
-
-        return res.json(req.user);
+        if (user) {
+          const newUser = await db("users")
+            .where({ email: user?.email })
+            .first();
+          return res.json(newUser);
+        } else {
+          return res.json(user);
+        }
       });
     } catch (error) {
       customError(400, "Unauthorized", next);
